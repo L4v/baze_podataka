@@ -1,0 +1,37 @@
+-- nazive projekata na kojima se radi ukupno vise od 15h
+select nap, sum(brc)
+from projekat p, radproj rp
+where p.spr = rp.spr
+group by nap
+having sum(brc) > 15;
+
+-- sifre i nazive projekata na kojima radi vise od 2 radnika
+---------------------
+select p.spr, p.nap
+from projekat p
+where p.spr in (select spr from radproj group by spr having count(mbr) > 2);
+
+-- ILI
+
+select p.spr, p.nap
+from projekat p, radproj rp
+where rp.spr = p.spr
+group by p.spr, p.nap
+having count(mbr) > 2
+order by spr;
+----------------------
+
+-- sifre i nazive projekata na kojima je prosecno angazovanje vece od
+-- prosecnog angazovanja na svim projektima
+select p.spr, p.nap
+from projekat p, radproj rp
+where p.spr = rp.spr
+group by p.spr, p.nap
+having avg(brc) > (select avg(brc) from radproj);
+
+-- nazive i sifre projekata sa najvecim prosecnim angazovanjem
+select p.nap, p.spr
+from projekat p, radproj rp
+where p.spr = rp.spr
+group by p.nap, p.spr
+having avg(rp.brc) >= all(select avg(brc) from radproj group by spr);
