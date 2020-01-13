@@ -12,25 +12,20 @@ public class ConnectionHikari {
 	
 	static
 	{
-		// NOTE(Jovan): Povezivanje na lokalnu bp
-		// sa odgovarajucim podacima
-		conf.setJdbcUrl(ConnectionParams.LOCAL_CONNECTIO_STRING);
+		conf.setJdbcUrl(ConnectionParams.LOCAL_CONNECTION_STRING);
 		conf.setUsername(ConnectionParams.USERNAME);
 		conf.setPassword(ConnectionParams.PASSWORD);
-		conf.setMaximumPoolSize(10);
 		conf.addDataSourceProperty("cachePrepStmts", "true");
-		conf.addDataSourceProperty("prepStmtCacheSize", "250");
+		conf.addDataSourceProperty("prepStmtCacheSize", "256");
 		conf.addDataSourceProperty("", "");
 		ds = new HikariDataSource(conf);
-	};
+	}
 	
-	// NOTE(Jovan): Override praznog konstruktora
-	private ConnectionHikari()
-	{}
+	private ConnectionHikari() {}
 	
-	// NOTE(Jovan): Getter za konekciju
 	public static Connection getConnection() throws SQLException
 	{
 		return ds.getConnection();
 	}
+	
 }

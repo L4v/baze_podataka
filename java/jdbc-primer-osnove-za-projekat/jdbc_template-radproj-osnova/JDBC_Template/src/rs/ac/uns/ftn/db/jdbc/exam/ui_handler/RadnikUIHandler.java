@@ -1,8 +1,19 @@
 package rs.ac.uns.ftn.db.jdbc.exam.ui_handler;
 
+import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Scanner;
+
+import rs.ac.uns.ftn.db.jdbc.exam.dao.RadnikDAO;
+import rs.ac.uns.ftn.db.jdbc.exam.dao.impl.RadnikDAOImpl;
+import rs.ac.uns.ftn.db.jdbc.exam.model.Radnik;
+
 public class RadnikUIHandler {
 	// private static final RadnikDAO radnikDAO = new RadnikDAOImpl();
-
+	private static final RadnikDAO radnikDAO = new RadnikDAOImpl();
 	public void handleRadnikMenu() {
 		String answer;
 		do {
@@ -43,15 +54,57 @@ public class RadnikUIHandler {
 	}
 
 	private void showAll() {
-		
+		System.out.println(Radnik.getFormattedHeader());
+		try {
+			for(Radnik r : radnikDAO.findAll())
+			{
+				System.out.println(r);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			System.out.println(e.getMessage());
+		}
 	}
 
 	private void showById() {
-
+		Scanner s = new Scanner(System.in);
+		int id = s.nextInt();
+		try {
+			System.out.println(Radnik.getFormattedHeader());
+			System.out.println(radnikDAO.findById(id));
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+		}
+		s.close();
 	}
 
 	private void handleSingleInsert() {
-
+		Scanner s = new Scanner(System.in);
+		System.out.println("MBR:");
+		int id = Integer.parseInt(s.nextLine());
+		System.out.println("IME:");
+		String ime = s.nextLine();
+		System.out.println("Prezime:");
+		String prz = s.nextLine();
+		System.out.println("Sef:");
+		int sef = Integer.parseInt(s.nextLine());
+		System.out.println("Plata:");
+		int plt = Integer.parseInt(s.nextLine());
+		System.out.println("Premija:");
+		int pre = Integer.parseInt(s.nextLine());
+		System.out.println("Godiste:");
+		DateFormat date = new SimpleDateFormat("dd.MM.yyyy");
+		try {
+			Date god = date.parse(s.nextLine());
+			Radnik tmp = new Radnik(id, ime, prz, sef, plt, pre, god);
+			radnikDAO.save(tmp);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		s.close();
 	}
 
 	private void handleUpdate() {
