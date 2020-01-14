@@ -14,7 +14,7 @@ int main() {
 
 	while (running) {
 		printf("Odaberite opciju:\n");
-		printf("1 - Otvaranje datoteke\n");
+		printf("1 - Otvaranje datotekee\n");
 		printf("2 - Formiranje datoteke\n");
 		printf("3 - Pretraga datoteke\n");
 		printf("4 - Unos sloga\n");
