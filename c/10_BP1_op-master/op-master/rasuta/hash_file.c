@@ -127,21 +127,21 @@ int alreadyExistsForInsert(FindRecordResult findResult) {
 }
 
 int insertRecord(FILE *pFile, Record record) {
-    record.status = ACTIVE;
-    FindRecordResult findResult = findRecord(pFile, record.key);
+  record.status = ACTIVE;
+  FindRecordResult findResult = findRecord(pFile, record.key);
 
-    if (alreadyExistsForInsert(findResult)) {                           // ukoliko slog sa datim kljucem vec postoji
-        return -1;
-    }
+  if (alreadyExistsForInsert(findResult)) {                           // ukoliko slog sa datim kljucem vec postoji
+    return -1;
+  }
 
-    findResult.bucket.records[findResult.recordIndex] = record;         // upis sloga u baket na mesto gde je neuspesno zavrseno trazenje
-                                                                        // ili aktivacija pothodno logicki obrisanog sloga sa istim kljucem
+  findResult.bucket.records[findResult.recordIndex] = record;         // upis sloga u baket na mesto gde je neuspesno zavrseno trazenje
+  // ili aktivacija pothodno logicki obrisanog sloga sa istim kljucem
 
-    if(saveBucket(pFile, &findResult.bucket, findResult.bucketIndex)) { // upis baketa u datoteku
-        return findResult.bucketIndex;                                  // ukoliko je unos uspesan, povratna vrednost je redni broj baketa
-    } else {
-        return -2;
-    }
+  if(saveBucket(pFile, &findResult.bucket, findResult.bucketIndex)) { // upis baketa u datoteku
+    return findResult.bucketIndex;                                  // ukoliko je unos uspesan, povratna vrednost je redni broj baketa
+  } else {
+    return -2;
+  }
 }
 
 int alreadyExistsForModify(FindRecordResult findResult) {

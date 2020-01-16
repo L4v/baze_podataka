@@ -1,0 +1,17 @@
+typedef struct datetime_st
+{
+  int day;
+  int month;
+  int year;
+  int hour;
+  int minute;
+}datetime;
+
+typedef struct record_st
+{
+  char ID[9];
+  char InmateID[8];
+  datetime InmateArrival;
+  char CellID[6];
+  int SentenceLength;
+}record;

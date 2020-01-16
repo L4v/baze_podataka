@@ -1,0 +1,6 @@
+typedef struct record_st
+{
+  char ID[9];
+  char InmateID[8];
+  datetime InmateArrival;
+}record;
