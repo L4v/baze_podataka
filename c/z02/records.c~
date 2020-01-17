@@ -19,6 +19,11 @@ SearchRecords(FILE* File, char* ID, record* Record)
 		  Result = 0;
 		  return Result;
 		}
+	      if(atoi(Block.Sectors[SectorIndex].ID) > atoi(ID))
+		{
+		  Result = 0;
+		  return Result;
+		}
 	      if(!strcmp(Block.Sectors[SectorIndex].ID, ID) &&
 		 !Block.Sectors[SectorIndex].Deleted)
 		{
@@ -104,47 +109,70 @@ InsertRecord(FILE* File, record* Record)
   if(File)
     {
       block Block = {};
-      record Tmp = {};
-      int SectorIndex = 0;
-      if(SearchRecords(File, Record->ID, &Tmp))
+      record ToWrite = *Record;
+      FileSeek(File, 0, SEEK_SET);
+      while(fread(&Block, sizeof(block), 1, File))
 	{
-	  printf("Vec postoji\n");
-	  return Result;
-	}
-      FileSeek(File, -sizeof(block), SEEK_END);
-      fread(&Block, sizeof(block), 1, File);
-      for(SectorIndex = 0;
-	  SectorIndex < BLOCKING_FACTOR;
-	  ++SectorIndex)
-	{
-	  if(!strcmp(Block.Sectors[SectorIndex].ID, FILE_END))
+	  for(int SectorIndex = 0;
+	      SectorIndex < BLOCKING_FACTOR;
+	      ++SectorIndex)
 	    {
-	      Block.Sectors[SectorIndex] = *Record;
-	      break;
+	      record* Curr = &Block.Sectors[SectorIndex];
+	      if(!strcmp(Curr->ID, FILE_END))
+		{
+		  // NOTE(Jovan): Prazno
+		  *Curr = ToWrite;
+		  FileSeek(File, -sizeof(block), SEEK_CUR);
+		  fwrite(&Block, sizeof(block), 1, File);
+		  Result = 1;
+		  if(SectorIndex == BLOCKING_FACTOR - 1)
+		    {
+		      // NOTE(Jovan): Kraj bloka
+		      block NextBlock = {};
+		      strcpy(NextBlock.Sectors[0].ID, FILE_END);
+		      fwrite(&NextBlock, sizeof(block), 1, File);
+		      printf("Dodat novi blok\n");
+		    }
+		  return Result;
+		}
+	      else if(!strcmp(Curr->ID, Record->ID))
+		{
+		  // NOTE(Jovan): Podudaranje sa ID-om
+		  if(!Curr->Deleted)
+		    {
+		      // NOTE(Jovan): Vec postoji i nije logicki obrisan
+		      printf("Vec postoji\n");
+		      Result = 0;
+		      return Result;
+		    }
+		  // NOTE(Jovan): Vec postoji i logicki je obrisan
+		  *Curr = ToWrite;
+		  FileSeek(File, -sizeof(block), SEEK_CUR);
+		  fwrite(&Block, sizeof(block), 1, File);
+		  Result = 1;
+		  return Result;
+		}
+	      else if(atoi(Record->ID) < atoi(Curr->ID))
+		{
+		  // NOTE(Jovan): Naisli smo na prvi sa vecim ID-om
+		  record Tmp = {};
+		  Tmp = *Curr;
+		  *Curr = ToWrite;
+		  ToWrite = Tmp;
+		  if(SectorIndex == BLOCKING_FACTOR - 1)
+		    {
+		      FileSeek(File, -sizeof(block), SEEK_CUR);
+		      fwrite(&Block, sizeof(block), 1, File);
+		      FileSeek(File, 0, SEEK_CUR);
+		    }
+		}
 	    }
 	}
-      ++SectorIndex;
-      if(SectorIndex < BLOCKING_FACTOR)
-	{
-	  strcpy(Block.Sectors[SectorIndex].ID, FILE_END);
-	  FileSeek(File, -sizeof(block), SEEK_CUR);
-	  fwrite(&Block, sizeof(block), 1, File);
-	}
-      else
-	{
-	  block NewBlock = {};
-	  FileSeek(File, -sizeof(block), SEEK_CUR);
-	  fwrite(&Block, sizeof(block), 1, File);
-	  strcpy(NewBlock.Sectors[0].ID, FILE_END);
-	  fwrite(&NewBlock, sizeof(block), 1, File);
-	}
-      Result = 1;
     }
   else
     {
-      printf("Fajl nije otvoren\n");
+      printf("File nije otvoren\n");
     }
-
   return Result;
 }
 
@@ -165,17 +193,17 @@ UpdateRecord(FILE* File, char* ID, char* NewCellID, int NewSentenceLength)
 	      record* Curr = &Block.Sectors[SectorIndex];
 	      if(!strcmp(Curr->ID, FILE_END))
 		{
-		  Result = 0;
 		  printf("Ne postoji\n");
+		  Result = 0;
 		  return Result;
 		}
 	      if(!strcmp(Curr->ID, ID) && !Curr->Deleted)
 		{
+		  Result = 1;
 		  strcpy(Curr->CellID, NewCellID);
 		  Curr->SentenceLength = NewSentenceLength;
 		  FileSeek(File, -sizeof(block), SEEK_CUR);
 		  fwrite(&Block, sizeof(block), 1, File);
-		  Result = 1;
 		  return Result;
 		}
 	    }
@@ -206,7 +234,7 @@ DeleteRecordSoft(FILE* File, char* ID)
 	      if(!strcmp(Curr->ID, FILE_END))
 		{
 		  Result = 0;
-		  printf("Nije pronadjen\n");
+		  printf("Ne postoji\n");
 		  return Result;
 		}
 	      if(!strcmp(Curr->ID, ID) && !Curr->Deleted)
@@ -233,30 +261,26 @@ DeleteRecordHard(FILE* File, char* ID)
   if(File)
     {
       block Block = {};
-      block NextBlock = {};
-      char IDToDelete[9] = {};
-      strcpy(IDToDelete, ID);
+      char IDZaBrisanje = {};
       FileSeek(File, 0, SEEK_SET);
+      strcpy(IDZaBrisanje, ID);
       while(fread(&Block, sizeof(block), 1, File))
 	{
 	  for(int SectorIndex = 0;
 	      SectorIndex < BLOCKING_FACTOR;
 	      ++SectorIndex)
 	    {
-	      int BytesRead = 0;
 	      record* Curr = &Block.Sectors[SectorIndex];
 	      if(!strcmp(Curr->ID, FILE_END))
 		{
 		  if(SectorIndex == 0)
 		    {
-		      long Keeping = 0;
-		      printf("Skracivanje fajla...\n");
-		      FileSeek(File, -sizeof(block), SEEK_END);
-		      Keeping = ftell(File);
-		      ftruncate(fileno(File), Keeping);
+		      size_t ToKeep = ftell(File);
+		      printf("Skracuje se fajl...\n");
+		      ftruncate(fileno(File), ToKeep);
 		      fflush(File);
 		    }
-		  printf("Obrisano\n");
+		  printf("Obrisan\n");
 		  return;
 		}
 	      if(!strcmp(Curr->ID, IDToDelete))
@@ -267,25 +291,7 @@ DeleteRecordHard(FILE* File, char* ID)
 		    }
 		  for(int i = SectorIndex + 1;
 		      i < BLOCKING_FACTOR;
-		      ++i)
-		    {
-		      Block.Sectors[i-1] = Block.Sectors[i];
-		    }
-		  BytesRead = fread(&NextBlock, sizeof(block), 1, File);
-		  if(BytesRead)
-		    {
-		      FileSeek(File, -sizeof(block), SEEK_CUR);
-		      Block.Sectors[BLOCKING_FACTOR-1] = NextBlock.Sectors[0];
-		      strcpy(IDToDelete, NextBlock.Sectors[0].ID);
-		    }
-		  FileSeek(File, -sizeof(block), SEEK_CUR);
-		  fwrite(&Block, sizeof(block), 1, File);
-		  if(!BytesRead)
-		    {
-		      printf("Obrisano\n");
-		      return;
-		    }
-		  break;
+		      )
 		}
 	    }
 	}
